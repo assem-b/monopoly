@@ -1,5 +1,6 @@
 #ifndef _monopoly_h
 #define _monopoly_h
+#include <stdio.h>
 
 #define NB_SPACES 39
 
@@ -48,26 +49,29 @@ struct propriete {
     int type;
 };
 
-
-
 extern struct propriete plateau[40];
 
-int   validation_number (char *entree);
-int   get_int (char *entree);
-void  get_name(struct joueur *current_player, int position);
-void  throw_dice(struct joueur *current_player);
+/* ------ DEALING WITH INPUT ------ */
+int   validation_number (char *nb_joueurs);
+int   get_int (char *nb_joueurs);
+void  give_name(struct joueur *current_player, int position);
+char  *take_input(char *string, size_t b, FILE *c);
+char  get_yn (char *message);
+void  wait_enter(struct joueur *current_player);
 
-void  press_enter(struct joueur *current_player);
-void  descending_order(struct joueur *joueurs, int participants);
-void  attribution_id(struct joueur *joueurs, int participants);
-
-void  print_position(struct propriete *space, struct joueur *joueurs);
+/* ------ PRINTING INFOS ------ */
 void  print_dice(struct DICE dice_player);
+void  print_position(struct propriete *space, struct joueur *joueurs, struct joueur *joueur);
+
+/* ------ LAUNCHING GAME ------ */
+void  sort_players(struct joueur *joueurs, int participants);
+void  give_id(struct joueur *joueurs, int participants);
 
 /* ------ GAME MECHANICS ------ */
 
+void throw_dice(struct joueur *current_player);
 void check_lap (struct joueur *current_player);
 void check_row (struct joueur *current_player);
-char get_yn (char *message);
 void buy_property (struct joueur *current_player, struct propriete *space);
+
 #endif
