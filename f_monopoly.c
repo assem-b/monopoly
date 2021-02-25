@@ -6,9 +6,9 @@
 #include <string.h>
 #include <time.h>
 
-// Validation entrée utilisateur
+/* Dealing with user input */
 
-int validation_number (char *nb_joueurs) //Check if every char can be converted to an int before using atoi
+static int check_for_int (char *nb_joueurs) //Check if every char can be converted to an int before using atoi
 {
     unsigned c;
     for (c = 0; c < strlen(nb_joueurs); c++) {
@@ -19,30 +19,55 @@ int validation_number (char *nb_joueurs) //Check if every char can be converted 
     return 0;
 }
 
-int get_int (char *nb_joueurs) 
+static char *keep_ask_number (int rc, char *nb_players) //If error keep asking for an input without letters
 {
-    take_input(nb_joueurs, sizeof(nb_joueurs), stdin);
-    int rc = validation_number(nb_joueurs);
-   
-    while (rc == 1) {                                         /* If not a valid number */
-        printf("Incorrect. Please type a number [2 - 12]: "); /* retry until it's correct */
-        take_input(nb_joueurs, sizeof(nb_joueurs), stdin);      
-        rc = validation_number(nb_joueurs);
+    while (rc == 1) {
+        printf("Incorrect. Please type a number [2 - 12]: ");
+        user_input(nb_players, sizeof(nb_players), stdin);
+        rc = check_for_int(nb_players);
     }
 
-    int total = atoi(nb_joueurs); /* Validation is correct no danger to user atoi */
+    return nb_players;
+}
+
+int set_players (void) 
+{
+    printf("Number of players [2 - 12]: ");
+    char *nb_players = malloc(3);
+    
+    user_input(nb_players, 3, stdin);
+    int rc = check_for_int(nb_players);
+     
+    if (rc == 1) nb_players = keep_ask_number(rc, nb_players); 
+    
+    int total = atoi(nb_players); /* Validation is correct no danger to user atoi */
+    free(nb_players);
+
     return total; 
 }
 
-
-
-void give_name (struct joueur *current_player, int position)
-{ 
-    printf("Enter player name [%d]: ", position + 1);
-    take_input(current_player->nom, sizeof(current_player->nom), stdin);
+int check_total (int total_players) 
+{    
+    while (total_players < 2 || total_players > 12){
+        printf("Please type a number between 2 and 12 \n"); 
+        total_players = set_players();
+    }
+  
+    return total_players;    
 }
 
+void set_name (struct joueur *current_player, int position)
+{ 
+    printf("Enter player name [%d]: ", position + 1);
+    user_input(current_player->nom, sizeof(current_player->nom), stdin);
+}
 
+static void print_dice(struct joueur *current_player)
+{
+    printf("Your result : %d (%d + %d) \n", current_player->dice.sum, current_player->dice.first, current_player->dice.second);
+    if (current_player->prison  == 0)    
+        if (current_player->dice.row == 2) printf("One more row and you go to jail\n");
+}
 
 void throw_dice(struct joueur *current_player)  
 {          
@@ -57,7 +82,7 @@ void throw_dice(struct joueur *current_player)
     else dice.row = 0;   
 
     current_player->dice = dice;
-    print_dice(current_player->dice);  
+    print_dice(current_player);  
 }
 
 void sort_players(struct joueur *joueurs, int participants) 
@@ -75,31 +100,42 @@ void sort_players(struct joueur *joueurs, int participants)
     }
 }
 
-void give_id(struct joueur *joueurs, int participants)
+void set_id(struct joueur *joueurs, int participants)
 {
     for(int i = 0; i < participants; i++) {
         joueurs[i].id = i + 1; //+1 to make id's starting from 1 and not zero
     }
 }
 
-
-void wait_enter(struct joueur *current_player) {
+void press_enter(struct joueur *current_player) {
     printf("\n\nIt's up to %s [Money: %d$] [Lap: %d] [ENTER TO CONTINUE]", current_player->nom, current_player->argent, current_player->tour);
     getchar();
+    
 }
+
+
+static void print_private_property (struct propriete *space, struct joueur *joueurs, struct joueur *current_player) 
+{ 
+    printf("[PRICE: %d] ", space->prix);
+    char *owner = NULL;
+     if (space->proprietaire) { 
+        owner = joueurs[space->proprietaire - 1].nom; 
+        printf("[OWNER: %s] ", owner);
+     }
+     printf("[SET: %s] ", space->ensemble.name);
+     if (space->proprietaire == current_player->id) 
+         printf("[SET ACQUIRED: %d/%d] ", current_player->inventory[space->ensemble.id], 
+                                          space->ensemble.max_properties);
+     if (space->maisons)
+         printf("[HOUSES OWNED: %d]", space->maisons);
+}
+
 
 void print_position(struct propriete *space, struct joueur *joueurs, struct joueur *current_player) {
-    char *owner = NULL;
-    if (space->proprietaire) owner = joueurs[space->proprietaire - 1].nom; 
-    printf("%s [POSITION: %d] [PRICE: %d] [OWNER: %s]\n ", space->nom, current_player->position, space->prix, owner); 
+    printf("%s [POSITION: %d] ", space->nom, current_player->position);
+    if (space->type == 0 || space->type == 1 || space->type == 2) 
+        print_private_property(space, joueurs, current_player);         
 }
-
-void print_dice(struct DICE dice) {
-    printf("Your result : %d (%d + %d) \n", dice.sum, dice.first, dice.second);
-    if (dice.row == 1) printf("Two more rows and you go to jail\n");
-    else if (dice.row == 2)printf("One more row and you go to jail\n");
-}
-
 
 
 

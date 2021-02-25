@@ -2,7 +2,25 @@
 #include "monopoly.h"
 #include <stdio.h>
 
-char *take_input(char *string, size_t size, FILE *c) 
+
+char prompt_yn (const char *question)
+{
+    printf("%s [y/n]: ", question);
+
+    char answer[2];
+    user_input(answer, sizeof(answer), stdin);
+    if (answer == NULL) return 1;
+    
+    while (answer[0] != 'y' && answer[0] != 'n') {
+        printf("Incorrect answer, type [y/n]: ");
+        user_input(answer, sizeof(answer), stdin);
+    }
+    
+    return answer[0];
+}
+
+
+char *user_input (char *string, size_t size, FILE *c) 
 { 
   char junkBuffer[128];
   size_t length; 
