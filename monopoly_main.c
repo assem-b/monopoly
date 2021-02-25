@@ -16,13 +16,11 @@
 #define SPACE_NO_OWNER            (!space->proprietaire)             
 
 #define PLAYER_AFFORD_PROPERTY    current_player->argent > space->prix
-#define PLAYER_AFFORD_HOUSE       current_player->argent > space->ensemble.prix 
+#define PLAYER_AFFORD_HOUSE       current_player->argent > space->set.prix 
 #define PLAYER_IS_OWNER           space->proprietaire == current_player->id
-#define PLAYER_OWNS_WHOLE_SET     current_player->inventory[space->ensemble.id] == space->ensemble.max_properties
-
+#define PLAYER_OWNS_WHOLE_SET     current_player->inventory[space->set.id] == space->set.max_properties
 #define OWNER_IS_NOT_PLAYER       space->proprietaire && (space->proprietaire != current_player->id)
 #define OWNER                     joueurs[space->proprietaire - 1]
-
 
 enum space_category { PRIVATE_PROPERTY, RAILROAD,
                       UTILITIE, TAX,
@@ -36,31 +34,16 @@ int main ()
     unsigned total_players = set_players(); 
     total_players = check_total(total_players);  /* Has to be between 2 - 12 */
 
-    struct joueur joueurs[total_players]; 
-    struct joueur *current_player = (struct joueur *)malloc(sizeof(struct joueur));
+    JOUEUR joueurs[total_players]; 
 
-    for (int i = 0; i < total_players; i++) {
-        *current_player = joueurs[i]; 
-        set_name(current_player, i);    
-        current_player->prison   =    0;
-        current_player->dice.row =    0;  /* Initializing some value to avoid    */
-        current_player->position =    0;  /* incrementation on undefined value */
-        current_player->tour     =    0;
-        for (int j = 0; j < 11; j++)
-            current_player->inventory[j] = 0;
-
-        current_player->argent   = 1500;  /* Each player starts with 1500$     */
-
-        throw_dice(current_player);
-        joueurs[i] = *current_player;
-    }
-     
+    initialize_players(joueurs,  total_players);
     sort_players(joueurs, total_players); /* Dice score sorted by descending order */ 
     set_id(joueurs, total_players);      /* Each player has an ID: position in the array + 1 */
 
     printf("-------------- LANCEMENT DU JEU -------------- \n");
 
-    struct propriete *space = (struct propriete *)malloc(sizeof(struct propriete));
+    JOUEUR *current_player = malloc(sizeof(JOUEUR));
+    SPACE *space       = malloc(sizeof(SPACE));
 
     for (int i = 0; i < total_players; i++) {
          
@@ -88,9 +71,9 @@ out_of_jail:
              if (SPACE_NO_OWNER && PLAYER_AFFORD_PROPERTY)
                  buy_property(current_player, space);
               
-             else if (OWNER_IS_NOT_PLAYER)
+             else if (OWNER_IS_NOT_PLAYER) 
                  OWNER = pay_owner(current_player, OWNER, space);        
- 
+
              else if (space->type == 0 && PLAYER_OWNS_WHOLE_SET && PLAYER_AFFORD_HOUSE)
                  buy_house(current_player, space);             
  

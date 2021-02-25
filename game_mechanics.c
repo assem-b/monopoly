@@ -7,7 +7,23 @@
 #include <time.h>
 
 
-void check_lap (struct joueur *current_player) 
+void initialize_players (JOUEUR *joueurs, int total_players)
+{
+    for (int i = 0; i < total_players; i++) {
+        set_name(&joueurs[i], i);
+        joueurs[i].prison   = 0;
+        joueurs[i].dice.row = 0;
+        joueurs[i].tour     = 0;
+        joueurs[i].position = 0; 
+        for (int j = 0; j < 11; j++)
+            joueurs[i].inventory[j] = 0;
+
+        joueurs[i].argent = 1500;
+        throw_dice(&joueurs[i]);        
+    }         
+}
+
+void check_lap (JOUEUR *current_player) 
 {
     if (current_player->position >= NB_SPACES) {
         current_player->position -= NB_SPACES;
@@ -18,7 +34,7 @@ void check_lap (struct joueur *current_player)
 
 }
 
-void send_to_jail (struct joueur *current_player, const char *message) 
+void send_to_jail (JOUEUR *current_player, const char *message) 
 {
     current_player->position = 10;
     current_player->prison   =  5;
@@ -26,7 +42,7 @@ void send_to_jail (struct joueur *current_player, const char *message)
     printf("%s \n", message);    
 }
 
-void go_prison (struct joueur *current_player, struct joueur *joueurs, struct propriete *space)
+void go_prison (JOUEUR *current_player, JOUEUR *joueurs, SPACE *space)
 {
     send_to_jail(current_player, "Bad luck !");
     current_player->prison -= 1;
@@ -34,7 +50,7 @@ void go_prison (struct joueur *current_player, struct joueur *joueurs, struct pr
     print_position(space, joueurs, current_player);
 }
 
-static int escape_jail (struct joueur *current_player)
+static int escape_jail (JOUEUR *current_player)
 {
     printf("\n");
     throw_dice(current_player);
@@ -54,7 +70,7 @@ static int escape_jail (struct joueur *current_player)
     return 1; 
 }
 
-static int pay_jail (struct joueur *current_player)
+static int pay_jail (JOUEUR *current_player)
 {
     current_player->argent -= 50;
     printf("You paid 50$ to get out of jail. \n");
@@ -63,7 +79,7 @@ static int pay_jail (struct joueur *current_player)
     return 0;
 }
 
-int get_out_jail (struct joueur *current_player)
+int get_out_jail (JOUEUR *current_player)
 {
     int rc = -1;
     if (current_player->prison == 1)
@@ -83,7 +99,7 @@ int get_out_jail (struct joueur *current_player)
     return rc;
 } 
 
-static struct joueur draw_money (struct joueur *current_player, struct joueur owner, int fees)
+static JOUEUR draw_money (JOUEUR *current_player, JOUEUR owner, int fees)
 {
     current_player->argent -= fees;
     owner.argent += fees;
@@ -91,60 +107,60 @@ static struct joueur draw_money (struct joueur *current_player, struct joueur ow
     return owner;
 }
 
-struct joueur pay_owner (struct joueur *current_player, struct joueur owner, struct propriete *space) 
+JOUEUR pay_owner (JOUEUR *current_player, JOUEUR owner, SPACE *space) 
 {
     int fees = 0;
     
     if (space->type == 0) fees = space->loyer[space->maisons];
-    else if (space->type == 1) fees = space->loyer[owner.inventory[space->ensemble.id]- 1];
+    else if (space->type == 1) fees = space->loyer[owner.inventory[space->set.id]- 1];
     
     else if (space->type == 2) {
-        if (owner.inventory[space->ensemble.id] == 1) fees = current_player->dice.sum * 4;
-        else if (owner.inventory[space->ensemble.id] == 2) fees = current_player->dice.sum * 10;
+        if (owner.inventory[space->set.id] == 1) fees = current_player->dice.sum * 4;
+        else if (owner.inventory[space->set.id] == 2) fees = current_player->dice.sum * 10;
     }
 
     owner = draw_money(current_player, owner, fees);
  
-    printf("%s owns %d to %s", current_player->nom, fees, owner.nom);
+    printf("\n%s owns %d to %s", current_player->nom, fees, owner.nom);
 
     return owner;
 }
 
-void buy_property (struct joueur *current_player, struct propriete *space)
+void buy_property (JOUEUR *current_player, SPACE *space)
 {
-    char *question = "Do you want to buy the property ?";
+    char *question = "\nDo you want to buy the property ?";
     char answer = prompt_yn(question);
          
     if (answer == 'y' && current_player->argent > space->prix) {
         current_player->argent -= space->prix; 
         space->proprietaire     = current_player->id;
             
-            if (current_player->inventory[space->ensemble.id] == 0)
-                 current_player->inventory[space->ensemble.id] = 1;
+            if (current_player->inventory[space->set.id] == 0)
+                 current_player->inventory[space->set.id] = 1;
             
             else  
-                current_player->inventory[space->ensemble.id] += 1;                 
+                current_player->inventory[space->set.id] += 1;                 
 
-     if (space->type == 0 && current_player->inventory[space->ensemble.id] == space->ensemble.max_properties)
-        printf("Well done ! You bought the whole set ! Next time you can build house. \n");           
+     if (space->type == 0 && current_player->inventory[space->set.id] == space->set.max_properties)
+        printf("\nWell done ! You bought the whole set ! Next time you can build house. \n");           
     }
 
     return;   
 }
 
-void buy_house (struct joueur *current_player, struct propriete *space)
+void buy_house (JOUEUR *current_player, SPACE *space)
 {
-    char *question = "Do you want to buy a HOUSE ?";
+    char *question = "\nDo you want to buy a HOUSE ?";
     char answer    = prompt_yn(question); 
 
     if (answer == 'y' && (space->maisons < 4)) {
-        current_player->argent -= space->ensemble.prix;
+        current_player->argent -= space->set.prix;
         if (!space->maisons) space->maisons = 1;
         else space->maisons += 1;
     }
     
     else if (answer == 'y' && space->maisons == 4) {
-        current_player->argent -= space->ensemble.prix;
+        current_player->argent -= space->set.prix;
         space->maisons += 1;
     }
 

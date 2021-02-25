@@ -56,22 +56,22 @@ int check_total (int total_players)
     return total_players;    
 }
 
-void set_name (struct joueur *current_player, int position)
+void set_name (JOUEUR *current_player, int position)
 { 
     printf("Enter player name [%d]: ", position + 1);
     user_input(current_player->nom, sizeof(current_player->nom), stdin);
 }
 
-static void print_dice(struct joueur *current_player)
+static void print_dice(JOUEUR *current_player)
 {
     printf("Your result : %d (%d + %d) \n", current_player->dice.sum, current_player->dice.first, current_player->dice.second);
     if (current_player->prison  == 0)    
         if (current_player->dice.row == 2) printf("One more row and you go to jail\n");
 }
 
-void throw_dice(struct joueur *current_player)  
+void throw_dice(JOUEUR *current_player)  
 {          
-    struct DICE dice = current_player->dice;
+    DICE dice = current_player->dice;
 
     dice.first   = rand() % 6 + 1;
     dice.second  = rand() % 6 + 1;
@@ -85,9 +85,9 @@ void throw_dice(struct joueur *current_player)
     print_dice(current_player);  
 }
 
-void sort_players(struct joueur *joueurs, int participants) 
+void sort_players(JOUEUR *joueurs, int participants) 
 {
-    struct joueur tmp;
+    JOUEUR tmp;
 
     for (int i = 0; i < participants; i++) {
         for (int j = 0; j < (participants - 1); j++) {
@@ -100,21 +100,20 @@ void sort_players(struct joueur *joueurs, int participants)
     }
 }
 
-void set_id(struct joueur *joueurs, int participants)
+void set_id(JOUEUR *joueurs, int participants)
 {
-    for(int i = 0; i < participants; i++) {
+    for(int i = 0; i < participants; i++) 
         joueurs[i].id = i + 1; //+1 to make id's starting from 1 and not zero
-    }
 }
 
-void press_enter(struct joueur *current_player) {
+void press_enter(JOUEUR *current_player) {
     printf("\n\nIt's up to %s [Money: %d$] [Lap: %d] [ENTER TO CONTINUE]", current_player->nom, current_player->argent, current_player->tour);
     getchar();
     
 }
 
 
-static void print_private_property (struct propriete *space, struct joueur *joueurs, struct joueur *current_player) 
+static void print_private_property (SPACE *space, JOUEUR *joueurs, JOUEUR *current_player) 
 { 
     printf("[PRICE: %d] ", space->prix);
     char *owner = NULL;
@@ -122,16 +121,16 @@ static void print_private_property (struct propriete *space, struct joueur *joue
         owner = joueurs[space->proprietaire - 1].nom; 
         printf("[OWNER: %s] ", owner);
      }
-     printf("[SET: %s] ", space->ensemble.name);
+     printf("[SET: %s] ", space->set.name);
      if (space->proprietaire == current_player->id) 
-         printf("[SET ACQUIRED: %d/%d] ", current_player->inventory[space->ensemble.id], 
-                                          space->ensemble.max_properties);
+         printf("[SET ACQUIRED: %d/%d] ", current_player->inventory[space->set.id], 
+                                          space->set.max_properties);
      if (space->maisons)
          printf("[HOUSES OWNED: %d]", space->maisons);
 }
 
 
-void print_position(struct propriete *space, struct joueur *joueurs, struct joueur *current_player) {
+void print_position(SPACE *space, JOUEUR *joueurs, JOUEUR *current_player) {
     printf("%s [POSITION: %d] ", space->nom, current_player->position);
     if (space->type == 0 || space->type == 1 || space->type == 2) 
         print_private_property(space, joueurs, current_player);         
