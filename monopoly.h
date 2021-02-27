@@ -19,8 +19,6 @@ typedef struct JOUEUR {
     DICE dice;
     int tour;
     int inventory[10]; 
-    int gare;
-    int services;
     int prison;
     int pass;
 } JOUEUR; 
@@ -30,12 +28,8 @@ typedef struct SET {
     char name[10];
     int prix;
     int max_properties;
+    int properties[4];
 } SET;
-
-struct banque {
-    int maisons;
-    int hotels;
-};
 
 typedef struct SPACE {
     char nom[50];
@@ -47,7 +41,7 @@ typedef struct SPACE {
     int type;
 } SPACE;
 
-extern SPACE plateau[40];
+extern SPACE board[40];
 
 /* ------ DEALING WITH INPUT ------ */
 int   set_players (void);
@@ -58,22 +52,25 @@ void  press_enter(JOUEUR *current_player);
 char  prompt_yn(const char *question);
 
 /* ------ PRINTING INFOS ------ */
-void  print_position(SPACE *space, JOUEUR *joueurs, JOUEUR *joueur);
+void print_position(SPACE *space, JOUEUR *joueurs, JOUEUR *joueur);
 
 /* ------ LAUNCHING GAME ------ */
 void  initialize_players (JOUEUR *joueurs, int total_players);
 void  sort_players(JOUEUR *joueurs, int participants);
 void  set_id(JOUEUR *joueurs, int participants);
 
-
 /* ------ GAME MECHANICS ------ */
 void throw_dice(JOUEUR *current_player);
 void check_lap (JOUEUR *current_player);
+
 void send_to_jail(JOUEUR *current_player, const char *message);
 int get_out_jail(JOUEUR *current_player);
 void go_prison(JOUEUR *current_player, JOUEUR *joueurs, SPACE *space);
+
 JOUEUR pay_owner (JOUEUR *current_player, JOUEUR owner, SPACE *space);
+
 void buy_property (JOUEUR *current_player, SPACE *space);
+int check_house (JOUEUR *current_player, SPACE *space);
 void buy_house (JOUEUR *current_player, SPACE *space);
 
 
