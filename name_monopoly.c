@@ -1,18 +1,28 @@
 #include "dbg.h"
 #include "monopoly.h"
 #include <stdio.h>
+#include <stdarg.h>
 
 
-char prompt_yn (const char *question)
+char prompt_yn (const char *question, const char first_choice, const char second_choice, ...)
 {
-    printf("%s [y/n]: ", question);
+    va_list args;
+    va_start(args, second_choice);
+    int third_choice = va_arg(args, int);
+    va_end(args);  
+
+       
+    if (!third_choice)
+        fprintf(stdout, "%s [%c/%c]: ", question, first_choice, second_choice);
+    else 
+        fprintf(stdout, "%s [%c/%c/%c]: ", question, first_choice, second_choice, third_choice);
 
     char answer[2];
     user_input(answer, sizeof(answer), stdin);
     if (answer == NULL) return 1;
     
-    while (answer[0] != 'y' && answer[0] != 'n') {
-        printf("Incorrect answer, type [y/n]: ");
+    while (answer[0] != first_choice  && answer[0] != second_choice && answer[0] != third_choice) {
+        printf("Incorrect answer, type [%c/%c/%c]: ", first_choice, second_choice, third_choice);
         user_input(answer, sizeof(answer), stdin);
     }
     

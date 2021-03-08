@@ -4,102 +4,117 @@
 #include <stdlib.h>
 #include <time.h>
 
+const int NO_OWNER  = -1;             
+const int COMMUNITY_CHEST_CARDS = 16;
+const int CHANCES_CARDS = 12;
 
-#define NO_OWNER -1             
-
-#define PLAYER_AFFORD_PROPERTY    current_player->argent > space->prix
-#define PLAYER_AFFORD_HOUSE       current_player->argent > space->set.prix 
-#define PLAYER_IS_OWNER           space->proprietaire == current_player->id
-#define PLAYER_OWNS_WHOLE_SET     current_player->inventory[space->set.id] == space->set.max_properties
-#define OWNER_IS_NOT_PLAYER       (space->proprietaire != -1) && (space->proprietaire != current_player->id)
-#define OWNER                     joueurs[space->proprietaire]
-
-enum space_category { STREET, RAILROAD, UTILITY, TAX,
-                      COMMUNITY_CHEST, CHANCE,
-                      NOTHING_HAPPEN, PRISON, GO_TO_PRISON };
+enum type { STREET,
+            RAILROAD,
+            UTILITY,
+            TAX,
+            COMMUNITY_CHEST,
+            CHANCE, 
+            NOTHING_HAPPEN,
+            PRISON, 
+            GO_TO_PRISON };
 
 int main ()
 {
-    srand(time(NULL));
-  
-    unsigned total_players = set_players(); 
-    total_players = check_total(total_players);  /* Has to be between 2 - 12 */
+    srand(time(NULL));  
 
-    JOUEUR joueurs[total_players]; 
+    BOARD *board = &board_classic;
 
-    initialize_players(joueurs,  total_players);
-    sort_players(joueurs, total_players); /* Dice score sorted by descending order */ 
-    set_id(joueurs, total_players);      /* Each player has an ID*/
+    set_players(board); 
+    check_total(board); 
+
+    board->active_players = board->nb_players;
+
+    PLAYER joueurs[board->nb_players];
+    PLAYER loosers[board->nb_players];
+    
+    board->players = joueurs; 
+    board->loosers = loosers;
+
+    initialize_players(board);
+    sort_players(board);  
+    set_id(board);      
+
+    for (int i = 0; i < (board->nb_players); i++)
+        printf("%s \n", board->players[i].name);
 
     printf("-------------- LANCEMENT DU JEU -------------- \n");
 
-    JOUEUR *current_player = malloc(sizeof(JOUEUR));
-    SPACE *space       = malloc(sizeof(SPACE));
+    PLAYER *player;
+    SPACE *space;
 
-    for (int i = 0; i < total_players; i++) {
-         
-        // Check if player has money
-        *current_player = joueurs[i];
-        press_enter(current_player);
-
-        if (current_player->prison == 0) {
-            throw_dice(current_player);        
-            current_player->position += current_player->dice.sum;
-        }
-
-        if (current_player->dice.row == 3) 
-            send_to_jail(current_player, "You made three doubles in a row."); 
+    for (int i = 0; i < board->nb_players; i++) {
         
-        check_lap(current_player);                                    
+        i = check_bankruptcy (board, i);     
+  
+        player = &board->players[i];
+        press_enter(player);
 
-out_of_jail:
-        *space = board[current_player->position];
-        print_position(space, joueurs, current_player);
-
-	if (space->type == STREET || space->type == RAILROAD || space->type == UTILITY) {     
-
-             if (space->proprietaire == NO_OWNER)
-                 buy_property(current_player, space);
-              
-             else if (space->proprietaire != current_player->id) 
-                 OWNER = pay_owner(current_player, OWNER, space);        
-
-             else if (space->type == STREET && space->proprietaire == current_player->id) 
-                 buy_house(current_player, space);             
-             
+        if (player->prison == 0) {
+            roll_dice(player);        
+            player->position += player->dice.sum;
         }
 
-        else if (space->type == TAX) {
-            printf("%s pays %d of taxes", current_player->nom, space->prix);
-            current_player->argent -= space->prix;
-        }
+        if (player->dice.row == 3) 
+            jail_player(player, "You made three doubles in a row."); 
+        
+        check_lap(player);                                    
+
+new_position:
+        space = &board->spaces[player->position];
+        print_position(space, board->players, player);
+
+        if (space->type == STREET || space->type == RAILROAD || space->type == UTILITY) {     
+
+            if (space->owner == NO_OWNER)
+                buy_property(player, space);
+                
+            else if (space->owner != player->id) 
+                pay_owner(player, space, board);        
+
+            else if (space->type == STREET && space->owner == player->id) 
+                build_or_mortgage(player, space, board);
+                                       
+            board->spaces[player->position] = *space; 
+        }       
+
+        else if (space->type == TAX) 
+            draw_money(player, space->price, board);
 
         else if (space->type == COMMUNITY_CHEST) {
-
+            cards (community_chest) = comm_chest[rand() % COMMUNITY_CHEST_CARDS  + 0];
+            int move_player = community_chest(player); 
+            if (move_player) goto new_position;
         }
 
         else if (space->type == CHANCE) {
+            cards (chance) = chances[rand() % CHANCES_CARDS + 0];
+            int move_player = chance(player); 
+            if (move_player) goto new_position;
+        }      
 
-        }     
-
-        else if (space->type == PRISON) {
-            if (current_player->prison > 0) {
-                int rc = get_out_jail(current_player);
-                if (rc == 0) goto out_of_jail;
-            }
+        else if (space->type == PRISON && player->prison > 0) {
+            int rc = is_jailed(player, board);
+            if (rc == 0) goto new_position;
         }
 
         else if (space->type == GO_TO_PRISON) 
-            go_prison(current_player, joueurs, space);
-        
-
-        joueurs[i] = *current_player;
-        board[current_player->position] = *space;
-
-        if ( i == (total_players - 1) ) /* if this the last player */
-            i = -1;                    /* reset to -1 to go back to the first */
+            send_jail(player, board, space);
       
+        
+        if (board->active_players == 1) break;         
+ 
+        int last_player = board->nb_players - 1;
+        if (i == last_player) i = -1; /* reset the loop */
+       
     }
-
+    
+    print_winner(board);
+    print_loosers(board);
+ 
     return 0;
 }
